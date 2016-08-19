@@ -395,7 +395,7 @@ def make_data(revs, dictionaries, embeddings, features, eventEntityType, skipByT
         
     return res, typeMap
 
-def predict(corpus, batch, reModel, features, skipByType, numSampling):
+def predict(corpus, batch, reModel, features, skipByType):
     evaluateCorpus = {}
     extra_data_num = -1
     nsen = corpus['word'].shape[0]
@@ -410,58 +410,36 @@ def predict(corpus, batch, reModel, features, skipByType, numSampling):
         
     numBatch = evaluateCorpus['word'].shape[0] / batch
     
-    sam_tlabel, sam_apos, sam_alabel, sam_scores = [], [], [], []
+    predictions_tlabel, predictions_apos, predictions_alabel = [], [], []
     
-    for timeSampling in range(numSampling):
-        predictions_tlabel, predictions_apos, predictions_alabel, predictions_scores = [], [], [], []
-    
-        for ed in reModel.container['setZero']:
-            reModel.container['setZero'][ed](reModel.container['zeroVecs'][ed])
+    for ed in reModel.container['setZero']:
+        reModel.container['setZero'][ed](reModel.container['zeroVecs'][ed])
 
-        for i in range(numBatch):
-            zippedCorpus = [ evaluateCorpus[ed][i*batch:(i+1)*batch] for ed in features if features[ed] >= 0 ]
+    for i in range(numBatch):
+        zippedCorpus = [ evaluateCorpus[ed][i*batch:(i+1)*batch] for ed in features if features[ed] >= 0 ]
             
-            if skipByType: varPrefix = 'skipped_'
-            else: varPrefix = ''
-            zippedCorpus += [ evaluateCorpus[varPrefix + vant][i*batch:(i+1)*batch] for vant in reModel.classificationVariables ]
+        if skipByType: varPrefix = 'skipped_'
+        else: varPrefix = ''
+        zippedCorpus += [ evaluateCorpus[varPrefix + vant][i*batch:(i+1)*batch] for vant in reModel.classificationVariables ]
         
-            pred = reModel.classify(*zippedCorpus)
+        pred = reModel.classify(*zippedCorpus)
         
-            reModel.resetGlobalVariables()
+        reModel.resetGlobalVariables()
         
-            predictions_tlabel += [pred[0]]
-            predictions_apos += [pred[1]]
-            predictions_alabel += [pred[2]]
-            predictions_scores += [pred[3]]
+        predictions_tlabel += [pred[0]]
+        predictions_apos += [pred[1]]
+        predictions_alabel += [pred[2]]
     
-        predictions_tlabel = numpy.concatenate(predictions_tlabel, axis=0)
-        predictions_apos = numpy.concatenate(predictions_apos, axis=0)
-        predictions_alabel = numpy.concatenate(predictions_alabel, axis=0)
-        predictions_scores = numpy.concatenate(predictions_scores)
+    predictions_tlabel = numpy.concatenate(predictions_tlabel, axis=0)
+    predictions_apos = numpy.concatenate(predictions_apos, axis=0)
+    predictions_alabel = numpy.concatenate(predictions_alabel, axis=0)
     
-        if extra_data_num > 0:
-            predictions_tlabel = predictions_tlabel[0:-extra_data_num]
-            predictions_apos = predictions_apos[0:-extra_data_num]
-            predictions_alabel = predictions_alabel[0:-extra_data_num]
-            predictions_scores = predictions_scores[0:-extra_data_num]
-        
-        sam_tlabel += [predictions_tlabel.reshape(predictions_tlabel.shape[0], 1, predictions_tlabel.shape[1])]
-        sam_apos += [predictions_apos.reshape(predictions_apos.shape[0], 1, predictions_apos.shape[1], predictions_apos.shape[2])]
-        sam_alabel += [predictions_alabel.reshape(predictions_alabel.shape[0], 1, predictions_alabel.shape[1], predictions_alabel.shape[2])]
-        sam_scores += [predictions_scores.reshape(predictions_scores.shape[0], 1)]
-            
-    sam_tlabel = numpy.concatenate(sam_tlabel, axis=1)
-    sam_apos = numpy.concatenate(sam_apos, axis=1)
-    sam_alabel = numpy.concatenate(sam_alabel, axis=1)
-    sam_scores = numpy.concatenate(sam_scores, axis=1)
+    if extra_data_num > 0:
+        predictions_tlabel = predictions_tlabel[0:-extra_data_num]
+        predictions_apos = predictions_apos[0:-extra_data_num]
+        predictions_alabel = predictions_alabel[0:-extra_data_num]
     
-    sam_argmax = sam_scores.argmax(1)
-    
-    sam_tlabel = sam_tlabel[numpy.arange(sam_tlabel.shape[0]), sam_argmax]
-    sam_apos = sam_apos[numpy.arange(sam_apos.shape[0]), sam_argmax]
-    sam_alabel = sam_alabel[numpy.arange(sam_alabel.shape[0]), sam_argmax]
-    
-    return sam_tlabel, sam_apos, sam_alabel
+    return predictions_tlabel, predictions_apos, predictions_alabel
 
 def score(corpusName, predictions_tlabel, predictions_apos, predictions_alabel, corpus, idx2word, idx2triggerLabel, idx2argLabel, idMap, evaluation_output):
 
@@ -542,7 +520,6 @@ def train(model='basic',
           updateEmbs=True,
           optimizer='adadelta',
           lr=0.01,
-          numSampling=10,
           dropoutTrigger=0.05,
           dropoutArg=0.05,
           regularizer=0.5,
@@ -764,7 +741,7 @@ def train(model='basic',
         # evaluation // back into the real world : idx -> words
         print 'evaluating in epoch: ', e
         for elu in evaluatingDataset:
-            predictions_tlabel, predictions_apos, predictions_alabel = predict(evaluatingDataset[elu], batch, reModel, features, skipByType, numSampling)
+            predictions_tlabel, predictions_apos, predictions_alabel = predict(evaluatingDataset[elu], batch, reModel, features, skipByType)
             _perfs[elu] = score(elu, predictions_tlabel, predictions_apos, predictions_alabel, evaluatingDataset[elu], idx2word, idx2triggerLabel, idx2argLabel, idMap, evaluation_output)
 
         perPrint(_perfs)

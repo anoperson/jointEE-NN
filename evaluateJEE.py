@@ -16,7 +16,6 @@ def main(params):
           updateEmbs = params['updateEmbs'],
           optimizer = params['optimizer'],
           lr = params['lr'],
-          numSampling = params['numSampling'],
           dropoutTrigger = params['dropoutTrigger'],
           dropoutArg = params['dropoutArg'],
           regularizer = params['regularizer'],
@@ -65,13 +64,12 @@ if __name__=='__main__':
           'distanceFet' : -1,
           'triggerGlob' : -1,
           'argGlob' : -1,
-          'winTrigger' : 2,
-          'winArg' : 2,
+          'winTrigger' : -1,
+          'winArg' : -1,
           'withEmbs' : True,
           'updateEmbs' : True,
           'optimizer' : 'adadelta',
           'lr' : 0.01,
-          'numSampling' : 10,
           'dropoutTrigger' : 0.0,
           'dropoutArg' : 0.0,
           'regularizer' : 0.0,
@@ -114,7 +112,6 @@ if __name__=='__main__':
              + '.cvft_' + str(pars['conv_feature_map']) \
              + '.cvfm_' + fmStr(pars['conv_win_feature_map']) \
              + '.lr_' + str(pars['lr']) \
-             + '.ns_' + str(pars['numSampling']) \
              + '.nrm_' + str(pars['norm_lim'])
-    pars['folder'] =  'sampling.concat.A-GlobTri.' + folder
+    pars['folder'] =  'NoWin.concat.A-GlobTri.' + folder
     main(pars)

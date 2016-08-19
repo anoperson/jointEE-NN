@@ -14,7 +14,6 @@ from theano.tensor.nnet import conv
 from theano.tensor.signal import downsample
 from theano.updates import OrderedUpdates
 import theano.tensor.shared_randomstreams
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 #########################SOME UTILITIES########################
 
@@ -481,7 +480,6 @@ class BaseModel(object):
         
         self.args = args
         self.args['rng'] = numpy.random.RandomState(3435)
-        self.args['randSamplerDec'] = MRG_RandomStreams(1234)
         self.args['dropoutTrigger'] = args['dropoutTrigger'] if args['dropoutTrigger'] > 0. else 0.
         self.args['dropoutArg'] = args['dropoutArg'] if args['dropoutArg'] > 0. else 0.
         
@@ -958,13 +956,10 @@ def _rnnJoint(model):
         tvec = MultiHiddenLayersGiven([tvec], matTrigger)[-1][0]
         
         s_trigger = T.dot(tvec, (1.0 - model.args['dropoutTrigger']) * trigger_Wf) + trigger_bf
-        s_trigger = T.exp(s_trigger - s_trigger.max(axis=1, keepdims=True))
-        s_trigger = s_trigger / s_trigger.sum(axis=1, keepdims=True)
+        #s_trigger = T.exp(s_trigger - s_trigger.max(axis=1, keepdims=True))
+        #s_trigger = s_trigger / s_trigger.sum(axis=1, keepdims=True)
         
-        _tlabels = model.args['randSamplerDec'].multinomial(pvals=s_trigger, dtype=theano.config.floatX).argmax(1) * _tmasks
-        trigger_score = T.log(s_trigger)[T.arange(s_trigger.shape[0]), _tlabels] * _tmasks
-        
-        #_tlabels = T.argmax(s_trigger, axis=1) * _tmasks
+        _tlabels = T.argmax(s_trigger, axis=1) * _tmasks
         
         _aposs = p_aposs[T.arange(model.args['batch']), _tlabels]
         _entIds = p_entIds[T.arange(model.args['batch']), _tlabels]
@@ -1014,16 +1009,10 @@ def _rnnJoint(model):
             avec = T.cast(T.concatenate([avec, ext_arg], axis=2), dtype=theano.config.floatX)
         
         s_arg = T.dot(avec, (1.0 - model.args['dropoutArg']) * arg_Wf) + arg_bf
-        s_arg = T.exp(s_arg - s_arg.max(axis=2, keepdims=True))
-        s_arg = s_arg / s_arg.sum(axis=2, keepdims=True)
+        #s_arg = T.exp(s_arg - s_arg.max(axis=2, keepdims=True))
+        #s_arg = s_arg / s_arg.sum(axis=2, keepdims=True)
         
         _alabels = T.argmax(s_arg, axis=2) * _amasks * _tmasksArg.reshape((_tmasksArg.shape[0], 1))
-        
-        s_arg_reshape = s_arg.reshape((s_arg.shape[0]*s_arg.shape[1], s_arg.shape[2]))
-        arg_score = s_arg_reshape[T.arange(s_arg_reshape.shape[0]), _alabels.flatten()]
-        arg_score = arg_score.reshape((s_arg.shape[0], s_arg.shape[1])) * _amasks * _tmasksArg.reshape((_tmasksArg.shape[0], 1))
-        
-        _samplingScore = trigger_score + arg_score.sum(1)
         
         #_gts = T.set_subtensor(_gts[T.arange(model.glob['batch']), _tlabels], 1.0)
         #_gaas = T.set_subtensor(_gaas[id_aposs, _entIds, _alabels], 1.0)
@@ -1035,11 +1024,11 @@ def _rnnJoint(model):
         g_tlabels = g_tlabels * T.cast(_entIds >= 0, dtype='int32')
         #_gats = T.set_subtensor(_gats[id_aposs, _entIds, g_tlabels], 1.0)
         
-        return ([_tlabels, _entIds, _alabels, _samplingScore], {_gts : T.set_subtensor(_gts[T.arange(model.glob['batch']), _tlabels], 1.0), _gas : T.set_subtensor(_gas[id_aposs, _alabels], 1.0), _gats : T.set_subtensor(_gats[id_aposs, _entIds, g_tlabels], 1.0), _gaas : T.set_subtensor(_gaas[id_aposs, _entIds, _alabels], 1.0)})
+        return ([_tlabels, _entIds, _alabels], {_gts : T.set_subtensor(_gts[T.arange(model.glob['batch']), _tlabels], 1.0), _gas : T.set_subtensor(_gas[id_aposs, _alabels], 1.0), _gats : T.set_subtensor(_gats[id_aposs, _entIds, g_tlabels], 1.0), _gaas : T.set_subtensor(_gaas[id_aposs, _entIds, _alabels], 1.0)})
     
-    outscanTest, updateTest = theano.scan(fn=recurTest, sequences=[T.arange(model.args['maxSentLength']), model.container['triggerMaskTest'].T, model.container['triggerMaskTestArg'].T, model.container['NodeFets'].dimshuffle(1,0,2), model.container['EdgeFets'].dimshuffle(1,0,2,3)], non_sequences = [_x, model.container['possibleEnityIdByTrigger'], model.container['possibleEnityPosByTrigger'], model.container['argumentMaskTest'], model.container['relDistIdxs'].dimshuffle(1,0,2), extendedWords, model.glob['trigger'], model.glob['arg'], model.glob['argTrigger'], model.glob['argArg']], outputs_info=[None, None, None, None], n_steps=model.args['maxSentLength']) #model.container['relDistBinary'].dimshuffle(1,0,2,3)
+    outscanTest, updateTest = theano.scan(fn=recurTest, sequences=[T.arange(model.args['maxSentLength']), model.container['triggerMaskTest'].T, model.container['triggerMaskTestArg'].T, model.container['NodeFets'].dimshuffle(1,0,2), model.container['EdgeFets'].dimshuffle(1,0,2,3)], non_sequences = [_x, model.container['possibleEnityIdByTrigger'], model.container['possibleEnityPosByTrigger'], model.container['argumentMaskTest'], model.container['relDistIdxs'].dimshuffle(1,0,2), extendedWords, model.glob['trigger'], model.glob['arg'], model.glob['argTrigger'], model.glob['argArg']], outputs_info=[None, None, None], n_steps=model.args['maxSentLength']) #model.container['relDistBinary'].dimshuffle(1,0,2,3)
         
-    overal_prediction = [outscanTest[0].T, outscanTest[1].dimshuffle(1,0,2), outscanTest[2].dimshuffle(1,0,2), outscanTest[3].T.sum(1)]
+    overal_prediction = [outscanTest[0].T, outscanTest[1].dimshuffle(1,0,2), outscanTest[2].dimshuffle(1,0,2)]
 
     model.buildFunctions(nll, overal_prediction, updateTrain, updateTest)
     
