@@ -15,15 +15,15 @@ from theano.tensor.signal import downsample
 import theano.tensor.shared_randomstreams
 from jeeModels import *
 
-dataset_path = '/home/thn235/projects/jointEE/nn/externalFets/word2vec_jointEE.pkl'
+dataset_path = '~/projects/jointEE/nn/externalFets/word2vec_jointEE.pkl'
 #dataset_path = '../globHead/word2vec_jointEE.pkl'
 
-scoreScript = '/home/thn235/projects/jointEE/do'
+scoreScript = '~/projects/jointEE/do'
 
-data_sourceDir = '/home/thn235/projects/jointEE/corpus/qi'
-data_fileLists = {'train': '/home/thn235/projects/jointEE/fileLists/train.txt',
-                 'valid': '/home/thn235/projects/jointEE/fileLists/valid.txt',
-                 'test': '/home/thn235/projects/jointEE/fileLists/test.txt'}
+data_sourceDir = '~/projects/jointEE/corpus/qi'
+data_fileLists = {'train': '~/projects/jointEE/fileLists/train.txt',
+                 'valid': '~/projects/jointEE/fileLists/valid.txt',
+                 'test': '~/projects/jointEE/fileLists/test.txt'}
 data_predictedFiles = {'train': '',
                        'valid': '',
                        'test': ''}
@@ -484,7 +484,7 @@ def score(corpusName, predictions_tlabel, predictions_apos, predictions_alabel, 
     
     performance = {}
     
-    proc = subprocess.Popen([scoreScript, 'edu.cuny.qc.nn.NNScorer', data_sourceDir, data_fileLists[corpusName], data_predictedFiles[corpusName], evaluation_output], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    proc = subprocess.Popen([scoreScript, 'NNScorer', data_sourceDir, data_fileLists[corpusName], data_predictedFiles[corpusName], evaluation_output], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     
     ous, _ = proc.communicate()
     working = False
@@ -544,7 +544,7 @@ def train(model='basic',
           nepochs=50,
           folder='./res'):
           
-    folder = '/home/thn235/projects/jointEE/nn/externalFets/res/' + folder
+    folder = '~/projects/jointEE/res/' + folder
     #folder = './res/storer'
 
     if not os.path.exists(folder): os.mkdir(folder)
