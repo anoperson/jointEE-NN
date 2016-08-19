@@ -19,15 +19,15 @@ If you use this code, please cite the following paper:
 
 There are two steps to run this code:
 
-* Preprocessing: using file jee_processData.py
+* Preprocessing: using file ```jee_processData.py```
 
-You will need to have the ACE 2005 data set in the formate required by this file.
+You will need to have the ACE 2005 data set in the format required by this file.
 We cannot include the data in this release due to licence issues.
 
-* Train and test the model: using file evaluateJEE.py
+* Train and test the model: using file ```evaluateJEE.py```
 
 This step takes the output file in step 1.
 
-There are various parameters of the model you can change directly in the evaluateJEE.py file.
+There are various parameters of the model you can change directly in the ```evaluateJEE.py``` file.
 
 THE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
