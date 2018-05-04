@@ -22,7 +22,7 @@ There are two steps to run this code:
 * Preprocessing: using file ```jee_processData.py```
 
 You will need to have the ACE 2005 data set in the format required by this file.
-We cannot include the data in this release due to licence issues.
+We cannot include the data in this release due to licence issues. A sample document is provided in ```data```.
 
 * Train and test the model: using file ```evaluateJEE.py```
 
